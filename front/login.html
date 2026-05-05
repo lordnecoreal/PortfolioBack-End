@@ -22,13 +22,6 @@
             e.preventDefault();
             return false;
         });
-        
-        // Detectar se DevTools está aberto
-        setInterval(function() {
-            if (window.devtools && window.devtools.isOpen) {
-                window.location.href = '/';
-            }
-        }, 1000);
     </script>
     <style>
         * {
@@ -84,6 +77,12 @@
             font-weight: 500;
         }
 
+        /* Container do input com olho */
+        .password-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
         input {
             width: 100%;
             padding: 12px;
@@ -91,6 +90,10 @@
             border-radius: 5px;
             font-size: 14px;
             transition: border-color 0.3s;
+        }
+
+        /* Input de senha com espaço para o olho */
+        .password-wrapper input {
             padding-right: 45px;
         }
 
@@ -99,20 +102,26 @@
             border-color: #667eea;
         }
 
-        /* Botão do olho */
+        /* Botão do olho - posicionado no fim da caixa */
         .toggle-password {
             position: absolute;
             right: 12px;
-            bottom: 12px;
+            top: 50%;
+            transform: translateY(-50%);
             cursor: pointer;
             font-size: 20px;
             user-select: none;
             background: none;
             border: none;
             padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
         }
 
-        button {
+        button[type="submit"] {
             width: 100%;
             padding: 12px;
             background: #667eea;
@@ -124,7 +133,7 @@
             transition: background 0.3s;
         }
 
-        button:hover {
+        button[type="submit"]:hover {
             background: #764ba2;
         }
 
@@ -171,8 +180,10 @@
             
             <div class="form-group">
                 <label>🔑 Senha</label>
-                <input type="password" id="senha" required placeholder="Digite sua senha">
-                <button type="button" class="toggle-password" id="toggleSenha">👁️</button>
+                <div class="password-wrapper">
+                    <input type="password" id="senha" required placeholder="Digite sua senha">
+                    <button type="button" class="toggle-password" id="toggleSenha">👁️</button>
+                </div>
             </div>
             
             <button type="submit">Entrar no Painel</button>
@@ -214,19 +225,16 @@
             const senha = document.getElementById('senha').value;
             
             if (usuario === ADMIN_USER && senha === ADMIN_PASSWORD) {
-                // Login bem-sucedido - gera token simples
                 const token = btoa(usuario + ':' + new Date().getTime());
                 sessionStorage.setItem('admin_logado', 'true');
                 sessionStorage.setItem('admin_usuario', usuario);
                 sessionStorage.setItem('admin_token', token);
                 window.location.href = '/admin';
             } else {
-                // Login falhou
                 const errorDiv = document.getElementById('errorMessage');
                 errorDiv.textContent = '❌ Usuário ou senha incorretos. Tente novamente.';
                 errorDiv.style.display = 'block';
                 
-                // Limpar senha
                 document.getElementById('senha').value = '';
                 
                 setTimeout(() => {

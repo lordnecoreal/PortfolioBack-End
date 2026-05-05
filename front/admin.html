@@ -22,24 +22,6 @@
             e.preventDefault();
             return false;
         });
-        
-        // Detectar se DevTools está aberto
-        let devtoolsOpen = false;
-        const element = new Image();
-        Object.defineProperty(element, 'id', {
-            get: function() {
-                devtoolsOpen = true;
-                window.location.href = '/';
-            }
-        });
-        setInterval(() => {
-            devtoolsOpen = false;
-            console.log(element);
-            console.clear();
-            if (devtoolsOpen) {
-                window.location.href = '/';
-            }
-        }, 1000);
     </script>
     <style>
         * {
@@ -389,11 +371,22 @@
             loadProjects();
         });
         
-        // Configurar formulário com upload
+        // Configurar formulário com upload e ALERTA DE CONFIRMAÇÃO
         document.getElementById('projectForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const id = document.getElementById('projectId').value;
+            const isEditing = id !== '';
+            
+            // ALERTA: Perguntar se quer salvar as alterações
+            const confirmarSalvar = confirm('⚠️ Deseja salvar as alterações?');
+            
+            if (!confirmarSalvar) {
+                // Usuário clicou em "Cancelar" (Não)
+                return;
+            }
+            
+            // Usuário clicou em "OK" (Sim) - continuar com o salvamento
             const formData = new FormData();
             
             formData.append('nome', document.getElementById('nome').value);
@@ -405,7 +398,7 @@
             if (imageFile) {
                 formData.append('imagem', imageFile);
             } else if (!id) {
-                showMessage('❌ Por favor, selecione uma imagem para o projeto', 'error');
+                alert('❌ Por favor, selecione uma imagem para o projeto');
                 return;
             }
             
@@ -420,16 +413,16 @@
                     });
                     
                     if (response.ok) {
-                        showMessage('✅ Projeto atualizado com sucesso!', 'success');
+                        alert('✅ Informações salvas com sucesso!');
                         resetForm();
                         loadProjects();
                     } else {
                         const error = await response.json();
                         if (response.status === 401 || response.status === 403) {
-                            showMessage('❌ Sessão expirada. Faça login novamente.', 'error');
+                            alert('❌ Sessão expirada. Faça login novamente.');
                             setTimeout(() => fazerLogout(), 2000);
                         } else {
-                            showMessage(`❌ Erro: ${error.error}`, 'error');
+                            alert(`❌ Erro: ${error.error}`);
                         }
                     }
                 } else {
@@ -440,21 +433,21 @@
                     });
                     
                     if (response.ok) {
-                        showMessage('✅ Projeto adicionado com sucesso!', 'success');
+                        alert('✅ Informações salvas com sucesso!');
                         resetForm();
                         loadProjects();
                     } else {
                         const error = await response.json();
                         if (response.status === 401 || response.status === 403) {
-                            showMessage('❌ Sessão expirada. Faça login novamente.', 'error');
+                            alert('❌ Sessão expirada. Faça login novamente.');
                             setTimeout(() => fazerLogout(), 2000);
                         } else {
-                            showMessage(`❌ Erro: ${error.error}`, 'error');
+                            alert(`❌ Erro: ${error.error}`);
                         }
                     }
                 }
             } catch (error) {
-                showMessage(`❌ Erro de conexão: ${error.message}`, 'error');
+                alert(`❌ Erro de conexão: ${error.message}`);
             }
         });
         
@@ -517,7 +510,7 @@
                 
                 document.getElementById('formulario').scrollIntoView({ behavior: 'smooth' });
             } catch (error) {
-                showMessage('Erro ao carregar projeto para edição', 'error');
+                alert('Erro ao carregar projeto para edição');
             }
         }
         
@@ -533,7 +526,7 @@
                 });
                 
                 if (response.ok) {
-                    showMessage('✅ Projeto excluído com sucesso!', 'success');
+                    alert('✅ Projeto excluído com sucesso!');
                     loadProjects();
                     
                     if (document.getElementById('projectId').value == id) {
@@ -542,14 +535,14 @@
                 } else {
                     const error = await response.json();
                     if (response.status === 401 || response.status === 403) {
-                        showMessage('❌ Sessão expirada. Faça login novamente.', 'error');
+                        alert('❌ Sessão expirada. Faça login novamente.');
                         setTimeout(() => fazerLogout(), 2000);
                     } else {
-                        showMessage(`❌ Erro: ${error.error}`, 'error');
+                        alert(`❌ Erro: ${error.error}`);
                     }
                 }
             } catch (error) {
-                showMessage(`❌ Erro de conexão: ${error.message}`, 'error');
+                alert(`❌ Erro de conexão: ${error.message}`);
             }
         }
         
@@ -561,19 +554,6 @@
             document.getElementById('cancelBtn').style.display = 'none';
             document.getElementById('currentImageInfo').style.display = 'none';
             document.getElementById('imagemUpload').value = '';
-        }
-        
-        function showMessage(msg, type) {
-            const messageDiv = document.getElementById('message');
-            messageDiv.innerHTML = `<div class="message ${type}">${msg}</div>`;
-            
-            messageDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            
-            setTimeout(() => {
-                if (messageDiv.innerHTML.includes(msg)) {
-                    messageDiv.innerHTML = '';
-                }
-            }, 3000);
         }
         
         function escapeHtml(text) {
