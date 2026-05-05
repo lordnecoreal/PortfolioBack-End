@@ -8,9 +8,10 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Configurações de autenticação
+// Configurações de autenticação - MESMA SENHA!!!
 const ADMIN_USER = 'lordneco';
-const API_SECRET = 'BearerTokenLordNeco2026';
+const ADMIN_PASSWORD = 'goticorj';
+const API_SECRET = 'goticorj';
 
 // Middlewares
 app.use(cors());
@@ -82,6 +83,31 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'front', 'index.html'));
 });
 
+// ============ ROTA DE AUTENTICAÇÃO ============
+app.post('/auth/login', (req, res) => {
+  const { usuario, senha } = req.body;
+  
+  // Pega as credenciais das variáveis de ambiente do Render
+  const ADMIN_USER = process.env.ADMIN_USER || 'lordneco';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  const API_SECRET = process.env.API_SECRET || 'goticorj';
+  
+  if (!ADMIN_PASSWORD) {
+    console.error('⚠️ SENHA NÃO CONFIGURADA no Render!');
+    return res.status(500).json({ error: 'Erro na configuração do servidor' });
+  }
+  
+  if (usuario === ADMIN_USER && senha === ADMIN_PASSWORD) {
+    res.json({ 
+      success: true, 
+      token: API_SECRET,
+      usuario: usuario 
+    });
+  } else {
+    res.status(401).json({ error: 'Usuário ou senha inválidos' });
+  }
+});
+
 // ============ ROTAS DA API ============
 
 // 1. GET - Listar todos os projetos (PÚBLICO)
@@ -116,13 +142,11 @@ app.post('/projetos', autenticarAdmin, upload.single('imagem'), (req, res) => {
   try {
     const { nome, descricao, githubLink, liveLink } = req.body;
     
-    // Validar campos obrigatórios
     if (!nome || !descricao || !githubLink || !liveLink) {
       res.status(400).json({ error: 'Campos obrigatórios: nome, descricao, githubLink, liveLink' });
       return;
     }
     
-    // Validar se arquivo foi enviado
     if (!req.file) {
       res.status(400).json({ error: 'Imagem é obrigatória' });
       return;
@@ -137,7 +161,6 @@ app.post('/projetos', autenticarAdmin, upload.single('imagem'), (req, res) => {
     
     db.run(sql, [nome, descricao, imagemPath, githubLink, liveLink], function(err) {
       if (err) {
-        // Se der erro, deletar arquivo de imagem
         if (req.file && req.file.path && fs.existsSync(req.file.path)) {
           fs.unlinkSync(req.file.path);
         }
@@ -164,7 +187,6 @@ app.put('/projetos/:id', autenticarAdmin, upload.single('imagem'), (req, res) =>
   const { id } = req.params;
   const { nome, descricao, githubLink, liveLink } = req.body;
   
-  // Primeiro, buscar o projeto atual
   db.get('SELECT * FROM projetos WHERE id = ?', [id], (err, projeto) => {
     if (err) {
       res.status(500).json({ error: err.message });
@@ -177,9 +199,7 @@ app.put('/projetos/:id', autenticarAdmin, upload.single('imagem'), (req, res) =>
     
     let imagemPath = projeto.imagem;
     
-    // Se nova imagem foi enviada
     if (req.file) {
-      // Deletar imagem antiga se existir
       if (projeto.imagem) {
         const oldImagePath = path.join(__dirname, projeto.imagem);
         if (fs.existsSync(oldImagePath)) {
@@ -198,7 +218,6 @@ app.put('/projetos/:id', autenticarAdmin, upload.single('imagem'), (req, res) =>
     
     db.run(sql, [nome, descricao, imagemPath, githubLink, liveLink, id], function(err) {
       if (err) {
-        // Se houve upload de imagem e deu erro, deletar a nova imagem
         if (req.file && req.file.path && fs.existsSync(req.file.path)) {
           fs.unlinkSync(req.file.path);
         }
@@ -220,7 +239,6 @@ app.put('/projetos/:id', autenticarAdmin, upload.single('imagem'), (req, res) =>
 app.delete('/projetos/:id', autenticarAdmin, (req, res) => {
   const { id } = req.params;
   
-  // Buscar o projeto para pegar o caminho da imagem
   db.get('SELECT imagem FROM projetos WHERE id = ?', [id], (err, projeto) => {
     if (err) {
       res.status(500).json({ error: err.message });
@@ -231,14 +249,12 @@ app.delete('/projetos/:id', autenticarAdmin, (req, res) => {
       return;
     }
     
-    // Deletar do banco
     db.run('DELETE FROM projetos WHERE id = ?', [id], function(err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
       
-      // Deletar arquivo de imagem se existir
       if (projeto.imagem) {
         const imagePath = path.join(__dirname, projeto.imagem);
         if (fs.existsSync(imagePath)) {

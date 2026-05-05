@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Painel Admin</title>
-    <!-- Prevenir inspeção -->
     <script>
-        // Bloquear F12, Ctrl+Shift+I, Ctrl+U, Ctrl+S
         document.addEventListener('keydown', function(e) {
             if (e.key === 'F12' || 
                 (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')) ||
@@ -17,7 +15,6 @@
             }
         });
         
-        // Bloquear clique direito
         document.addEventListener('contextmenu', function(e) {
             e.preventDefault();
             return false;
@@ -77,7 +74,6 @@
             font-weight: 500;
         }
 
-        /* Container do input com olho */
         .password-wrapper {
             position: relative;
             width: 100%;
@@ -92,7 +88,6 @@
             transition: border-color 0.3s;
         }
 
-        /* Input de senha com espaço para o olho */
         .password-wrapper input {
             padding-right: 45px;
         }
@@ -102,7 +97,6 @@
             border-color: #667eea;
         }
 
-        /* Botão do olho - posicionado no fim da caixa */
         .toggle-password {
             position: absolute;
             right: 12px;
@@ -195,47 +189,59 @@
     </div>
 
     <script>
-        // CONFIGURAÇÕES DE ACESSO - ALTERE AQUI!!!
-        const ADMIN_USER = 'lordneco';
-        const ADMIN_PASSWORD = 'goticorj';
-        
-        // Função para mostrar/esconder senha
         const toggleSenha = document.getElementById('toggleSenha');
         const senhaInput = document.getElementById('senha');
         
         toggleSenha.addEventListener('click', function() {
             if (senhaInput.type === 'password') {
                 senhaInput.type = 'text';
-                toggleSenha.textContent = '🚫';
+                toggleSenha.textContent = '🙈';
             } else {
                 senhaInput.type = 'password';
                 toggleSenha.textContent = '👁️';
             }
         });
         
-        // Verificar se já está logado
         if (sessionStorage.getItem('admin_logado') === 'true') {
             window.location.href = '/admin';
         }
         
-        document.getElementById('loginForm').addEventListener('submit', (e) => {
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const usuario = document.getElementById('usuario').value;
             const senha = document.getElementById('senha').value;
             
-            if (usuario === ADMIN_USER && senha === ADMIN_PASSWORD) {
-                const token = btoa(usuario + ':' + new Date().getTime());
-                sessionStorage.setItem('admin_logado', 'true');
-                sessionStorage.setItem('admin_usuario', usuario);
-                sessionStorage.setItem('admin_token', token);
-                window.location.href = '/admin';
-            } else {
-                const errorDiv = document.getElementById('errorMessage');
-                errorDiv.textContent = '❌ Usuário ou senha incorretos. Tente novamente.';
-                errorDiv.style.display = 'block';
+            const errorDiv = document.getElementById('errorMessage');
+            
+            try {
+                const response = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ usuario, senha })
+                });
                 
-                document.getElementById('senha').value = '';
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    sessionStorage.setItem('admin_logado', 'true');
+                    sessionStorage.setItem('admin_usuario', usuario);
+                    sessionStorage.setItem('admin_token', data.token);
+                    window.location.href = '/admin';
+                } else {
+                    errorDiv.textContent = '❌ Usuário ou senha incorretos. Tente novamente.';
+                    errorDiv.style.display = 'block';
+                    document.getElementById('senha').value = '';
+                    
+                    setTimeout(() => {
+                        errorDiv.style.display = 'none';
+                    }, 3000);
+                }
+            } catch (error) {
+                errorDiv.textContent = '❌ Erro de conexão. Tente novamente mais tarde.';
+                errorDiv.style.display = 'block';
                 
                 setTimeout(() => {
                     errorDiv.style.display = 'none';
