@@ -3,10 +3,8 @@
   "version": "1.0.0",
   "description": "API do portfólio - Lord Neco",
   "main": "server.js",
-   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+  "scripts": {
     "dev": "nodemon server.js",
-    "postinstall": "npm rebuild sqlite3",
     "start": "node server.js"
   },
   "keywords": ["portfolio", "api", "projects"],

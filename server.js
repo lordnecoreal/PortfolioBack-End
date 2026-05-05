@@ -22,8 +22,9 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    const originalName = file.originalname;
-    cb(null, originalName);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, 'projeto-' + uniqueSuffix + ext);
   }
 });
 
@@ -43,8 +44,18 @@ const upload = multer({
   }
 });
 
-// Servir arquivos estáticos (imagens)
+// Servir arquivos estáticos
 app.use('/src/imagensprojetos', express.static(path.join(__dirname, 'src', 'imagensprojetos')));
+app.use('/front', express.static(path.join(__dirname, 'front')));
+
+// Rotas para páginas HTML
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'front', 'admin.html'));
+});
+
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'front', 'login.html'));
+});
 
 // ============ ROTA PRINCIPAL - PÁGINA SIMPLIFICADA ============
 app.get('/', (req, res) => {
@@ -110,6 +121,15 @@ app.get('/', (req, res) => {
                 border-color: #444;
                 margin: 20px 0;
             }
+            .btn {
+                display: inline-block;
+                background: #667eea;
+                color: white;
+                padding: 10px 20px;
+                text-decoration: none;
+                border-radius: 5px;
+                margin-top: 10px;
+            }
         </style>
     </head>
     <body>
@@ -133,7 +153,13 @@ app.get('/', (req, res) => {
             
             <hr>
             
-            <h2>🔍 Outros exemplos</h2>
+            <h2>🔍 Painel Administrativo</h2>
+            <p>Acesse o painel para gerenciar seus projetos:</p>
+            <a href="/login" class="btn">🔐 Acessar Painel Admin</a>
+            
+            <hr>
+            
+            <h2>📡 Outros exemplos</h2>
             <div class="exemplo">
                 📋 Buscar projeto específico:<br>
                 <code>http://localhost:3000/projetos/1</code>
@@ -145,7 +171,7 @@ app.get('/', (req, res) => {
             </div>
             
             <div class="footer">
-                <p>🚀 Para adicionar, editar ou deletar projetos, utilize o <strong>Postman</strong></p>
+                <p>🚀 Desenvolvido por Lord Neco</p>
                 <p>© 2026 - API do Portfólio</p>
             </div>
         </div>
@@ -183,80 +209,144 @@ app.get('/projetos/:id', (req, res) => {
   });
 });
 
-// 3. POST - Criar novo projeto
-app.post('/projetos', (req, res) => {
-  const { nome, descricao, imagem, fallback, githubLink, liveLink } = req.body;
-  
-  if (!nome || !descricao || !imagem || !fallback || !githubLink || !liveLink) {
-    res.status(400).json({ error: 'Todos os campos são obrigatórios: nome, descricao, imagem, fallback, githubLink, liveLink' });
-    return;
+// 3. POST - Criar novo projeto COM UPLOAD DE IMAGEM
+app.post('/projetos', upload.single('imagem'), (req, res) => {
+  try {
+    const { nome, descricao, githubLink, liveLink } = req.body;
+    
+    // Validar campos obrigatórios
+    if (!nome || !descricao || !githubLink || !liveLink) {
+      res.status(400).json({ error: 'Campos obrigatórios: nome, descricao, githubLink, liveLink' });
+      return;
+    }
+    
+    // Validar se arquivo foi enviado
+    if (!req.file) {
+      res.status(400).json({ error: 'Imagem é obrigatória' });
+      return;
+    }
+    
+    const imagemPath = `/src/imagensprojetos/${req.file.filename}`;
+    
+    const sql = `
+      INSERT INTO projetos (nome, descricao, imagem, githubLink, liveLink)
+      VALUES (?, ?, ?, ?, ?)
+    `;
+    
+    db.run(sql, [nome, descricao, imagemPath, githubLink, liveLink], function(err) {
+      if (err) {
+        // Se der erro, deletar arquivo de imagem
+        if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      
+      res.status(201).json({
+        id: this.lastID,
+        nome,
+        descricao,
+        imagem: imagemPath,
+        githubLink,
+        liveLink
+      });
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
+});
+
+// 4. PUT - Atualizar projeto COM OU SEM UPLOAD DE IMAGEM
+app.put('/projetos/:id', upload.single('imagem'), (req, res) => {
+  const { id } = req.params;
+  const { nome, descricao, githubLink, liveLink } = req.body;
   
-  const sql = `
-    INSERT INTO projetos (nome, descricao, imagem, fallback, githubLink, liveLink)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `;
-  
-  db.run(sql, [nome, descricao, imagem, fallback, githubLink, liveLink], function(err) {
+  // Primeiro, buscar o projeto atual
+  db.get('SELECT * FROM projetos WHERE id = ?', [id], (err, projeto) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
+    if (!projeto) {
+      res.status(404).json({ error: 'Projeto não encontrado' });
+      return;
+    }
     
-    res.status(201).json({
-      id: this.lastID,
-      nome,
-      descricao,
-      imagem,
-      fallback,
-      githubLink,
-      liveLink
+    let imagemPath = projeto.imagem;
+    
+    // Se nova imagem foi enviada
+    if (req.file) {
+      // Deletar imagem antiga se existir
+      if (projeto.imagem) {
+        const oldImagePath = path.join(__dirname, projeto.imagem);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+          console.log(`🗑️ Imagem antiga deletada: ${oldImagePath}`);
+        }
+      }
+      imagemPath = `/src/imagensprojetos/${req.file.filename}`;
+    }
+    
+    const sql = `
+      UPDATE projetos 
+      SET nome = ?, descricao = ?, imagem = ?, githubLink = ?, liveLink = ?
+      WHERE id = ?
+    `;
+    
+    db.run(sql, [nome, descricao, imagemPath, githubLink, liveLink, id], function(err) {
+      if (err) {
+        // Se houve upload de imagem e deu erro, deletar a nova imagem
+        if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      
+      if (this.changes === 0) {
+        res.status(404).json({ error: 'Projeto não encontrado' });
+        return;
+      }
+      
+      res.json({ message: 'Projeto atualizado com sucesso' });
     });
   });
 });
 
-// 4. PUT - Atualizar projeto
-app.put('/projetos/:id', (req, res) => {
-  const { id } = req.params;
-  const { nome, descricao, imagem, fallback, githubLink, liveLink } = req.body;
-  
-  const sql = `
-    UPDATE projetos 
-    SET nome = ?, descricao = ?, imagem = ?, fallback = ?, githubLink = ?, liveLink = ?
-    WHERE id = ?
-  `;
-  
-  db.run(sql, [nome, descricao, imagem, fallback, githubLink, liveLink, id], function(err) {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    
-    if (this.changes === 0) {
-      res.status(404).json({ error: 'Projeto não encontrado' });
-      return;
-    }
-    
-    res.json({ message: 'Projeto atualizado com sucesso' });
-  });
-});
-
-// 5. DELETE - Remover projeto
+// 5. DELETE - Remover projeto E SUA IMAGEM
 app.delete('/projetos/:id', (req, res) => {
   const { id } = req.params;
   
-  db.run('DELETE FROM projetos WHERE id = ?', [id], function(err) {
+  // Buscar o projeto para pegar o caminho da imagem
+  db.get('SELECT imagem FROM projetos WHERE id = ?', [id], (err, projeto) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
-    if (this.changes === 0) {
+    if (!projeto) {
       res.status(404).json({ error: 'Projeto não encontrado' });
       return;
     }
     
-    res.json({ message: 'Projeto removido com sucesso' });
+    // Deletar do banco
+    db.run('DELETE FROM projetos WHERE id = ?', [id], function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      
+      // Deletar arquivo de imagem se existir
+      if (projeto.imagem) {
+        const imagePath = path.join(__dirname, projeto.imagem);
+        if (fs.existsSync(imagePath)) {
+          fs.unlinkSync(imagePath);
+          console.log(`🗑️ Imagem deletada: ${imagePath}`);
+        }
+      }
+      
+      res.json({ message: 'Projeto removido com sucesso' });
+    });
   });
 });
 
@@ -265,4 +355,5 @@ app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
   console.log(`📁 Pasta de imagens: ${path.join(__dirname, 'src', 'imagensprojetos')}`);
   console.log(`📋 Para ver os projetos, acesse: http://localhost:${PORT}/projetos`);
+  console.log(`🔐 Painel admin: http://localhost:${PORT}/login`);
 });

@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Portfólio</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            padding-top: 70px;
+        }
+
+        /* HEADER FIXO */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo h1 {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .logo p {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+
+        .nav-link:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(255,255,255,0.15);
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
+
+        .btn-logout {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-logout:hover {
+            background: #c82333;
+        }
+
+        /* CONTEÚDO PRINCIPAL */
+        .container {
+            max-width: 800px;
+            margin: 0 auto 20px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            color: #333;
+            margin-top: 0;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: Arial, sans-serif;
+        }
+
+        input[type="file"] {
+            padding: 5px;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .project-card {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .project-card h3 {
+            margin: 0 0 10px 0;
+            color: #007bff;
+        }
+
+        .project-card p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .project-image-preview {
+            max-width: 100%;
+            max-height: 100px;
+            margin-top: 5px;
+            border-radius: 4px;
+        }
+
+        .btn-edit {
+            background: #ffc107;
+            margin-right: 10px;
+        }
+
+        .btn-edit:hover {
+            background: #e0a800;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+        }
+
+        .btn-delete:hover {
+            background: #c82333;
+        }
+
+        .message {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .small-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .current-image {
+            background: #e9ecef;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 5px;
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .nav-menu {
+                width: 100%;
+                justify-content: center;
+            }
+            body {
+                padding-top: 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER FIXO COM MENU -->
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">
+                <h1>🎨 Portfólio Lord Neco</h1>
+                <p>Painel Administrativo</p>
+            </div>
+            <div class="nav-menu">
+                <a href="#formulario" class="nav-link" id="menuNovo">➕ Novo Projeto</a>
+                <a href="#lista" class="nav-link" id="menuLista">📋 Meus Projetos</a>
+                <div class="user-info">
+                    <span>👤 <span id="usuarioLogado">Admin</span></span>
+                    <button onclick="fazerLogout()" class="btn-logout">🚪 Sair</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORMULÁRIO PARA ADICIONAR/EDITAR PROJETOS -->
+    <div id="formulario" class="container">
+        <h2 id="formTitle">📝 Adicionar Novo Projeto</h2>
+        
+        <div id="message"></div>
+        
+        <form id="projectForm" enctype="multipart/form-data">
+            <input type="hidden" id="projectId">
+            
+            <div class="form-group">
+                <label>Nome do Projeto *</label>
+                <input type="text" id="nome" required placeholder="Ex: Meu Projeto Incrível">
+            </div>
+            
+            <div class="form-group">
+                <label>Descrição *</label>
+                <textarea id="descricao" required placeholder="Descreva seu projeto..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Imagem do Projeto *</label>
+                <input type="file" id="imagemUpload" accept="image/png, image/jpeg, image/jpg, image/gif">
+                <div class="small-text">📸 Formatos aceitos: PNG, JPEG, JPG, GIF (max 5MB)</div>
+                <div id="currentImageInfo" style="display: none;" class="current-image">
+                    <strong>Imagem atual:</strong> <span id="currentImageName"></span>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Link do GitHub *</label>
+                <input type="url" id="githubLink" required placeholder="https://github.com/seu-usuario/projeto">
+            </div>
+            
+            <div class="form-group">
+                <label>Link do Site (Live) *</label>
+                <input type="url" id="liveLink" required placeholder="https://meu-projeto.vercel.app">
+            </div>
+            
+            <button type="submit" id="submitBtn">➕ Adicionar Projeto</button>
+            <button type="button" id="cancelBtn" style="background: #6c757d; display: none;">❌ Cancelar</button>
+        </form>
+    </div>
+
+    <!-- LISTA DE PROJETOS EXISTENTES -->
+    <div id="lista" class="container">
+        <h2>📋 Meus Projetos</h2>
+        <div id="projectsList">
+            <p>Carregando projetos...</p>
+        </div>
+    </div>
+
+    <script>
+        // VERIFICAÇÃO DE LOGIN
+        (function verificarLogin() {
+            const adminLogado = sessionStorage.getItem('admin_logado');
+            const adminUsuario = sessionStorage.getItem('admin_usuario');
+            
+            if (!adminLogado || adminLogado !== 'true') {
+                window.location.href = '/login';
+            }
+            
+            if (adminUsuario) {
+                document.getElementById('usuarioLogado').textContent = adminUsuario;
+            }
+        })();
+        
+        function fazerLogout() {
+            sessionStorage.removeItem('admin_logado');
+            sessionStorage.removeItem('admin_usuario');
+            window.location.href = '/login';
+        }
+        
+        // Menu scroll suave
+        document.getElementById('menuNovo').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('formulario').scrollIntoView({ behavior: 'smooth' });
+        });
+        
+        document.getElementById('menuLista').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('lista').scrollIntoView({ behavior: 'smooth' });
+        });
+        
+        // Configuração da API
+        const API_URL = 'http://localhost:3000/projetos';
+        
+        // Carregar projetos ao abrir a página
+        document.addEventListener('DOMContentLoaded', () => {
+            loadProjects();
+        });
+        
+        // Configurar formulário com upload
+        document.getElementById('projectForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const id = document.getElementById('projectId').value;
+            const formData = new FormData();
+            
+            formData.append('nome', document.getElementById('nome').value);
+            formData.append('descricao', document.getElementById('descricao').value);
+            formData.append('githubLink', document.getElementById('githubLink').value);
+            formData.append('liveLink', document.getElementById('liveLink').value);
+            
+            const imageFile = document.getElementById('imagemUpload').files[0];
+            if (imageFile) {
+                formData.append('imagem', imageFile);
+            } else if (!id) {
+                showMessage('❌ Por favor, selecione uma imagem para o projeto', 'error');
+                return;
+            }
+            
+            try {
+                let response;
+                
+                if (id) {
+                    response = await fetch(`${API_URL}/${id}`, {
+                        method: 'PUT',
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        showMessage('✅ Projeto atualizado com sucesso!', 'success');
+                        resetForm();
+                        loadProjects();
+                    } else {
+                        const error = await response.json();
+                        showMessage(`❌ Erro: ${error.error}`, 'error');
+                    }
+                } else {
+                    response = await fetch(API_URL, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        showMessage('✅ Projeto adicionado com sucesso!', 'success');
+                        resetForm();
+                        loadProjects();
+                    } else {
+                        const error = await response.json();
+                        showMessage(`❌ Erro: ${error.error}`, 'error');
+                    }
+                }
+            } catch (error) {
+                showMessage(`❌ Erro de conexão: ${error.message}`, 'error');
+            }
+        });
+        
+        document.getElementById('cancelBtn').addEventListener('click', resetForm);
+        
+        async function loadProjects() {
+            try {
+                const response = await fetch(API_URL);
+                const projects = await response.json();
+                
+                const container = document.getElementById('projectsList');
+                
+                if (projects.length === 0) {
+                    container.innerHTML = '<p>📭 Nenhum projeto cadastrado ainda.</p>';
+                    return;
+                }
+                
+                projects.reverse();
+                
+                container.innerHTML = projects.map(project => `
+                    <div class="project-card">
+                        <h3>${project.nome}</h3>
+                        ${project.imagem ? `<img src="http://localhost:3000${project.imagem}" alt="${project.nome}" class="project-image-preview" onerror="this.style.display='none'">` : ''}
+                        <p><strong>Descrição:</strong> ${project.descricao}</p>
+                        <p><strong>GitHub:</strong> <a href="${project.githubLink}" target="_blank">${project.githubLink}</a></p>
+                        <p><strong>Site:</strong> <a href="${project.liveLink}" target="_blank">${project.liveLink}</a></p>
+                        <p><strong>ID:</strong> ${project.id}</p>
+                        <div style="margin-top: 10px;">
+                            <button class="btn-edit" onclick="editProject(${project.id})">✏️ Editar</button>
+                            <button class="btn-delete" onclick="deleteProject(${project.id})">🗑️ Excluir</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                document.getElementById('projectsList').innerHTML = `<p style="color: red;">❌ Erro ao carregar: ${error.message}</p>`;
+            }
+        }
+        
+        async function editProject(id) {
+            try {
+                const response = await fetch(`${API_URL}/${id}`);
+                const project = await response.json();
+                
+                document.getElementById('projectId').value = project.id;
+                document.getElementById('nome').value = project.nome;
+                document.getElementById('descricao').value = project.descricao;
+                document.getElementById('githubLink').value = project.githubLink;
+                document.getElementById('liveLink').value = project.liveLink;
+                
+                if (project.imagem) {
+                    const imageName = project.imagem.split('/').pop();
+                    document.getElementById('currentImageName').textContent = imageName;
+                    document.getElementById('currentImageInfo').style.display = 'block';
+                }
+                
+                document.getElementById('imagemUpload').value = '';
+                document.getElementById('formTitle').textContent = '✏️ Editando Projeto';
+                document.getElementById('submitBtn').textContent = '💾 Salvar Alterações';
+                document.getElementById('cancelBtn').style.display = 'inline-block';
+                
+                document.getElementById('formulario').scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                showMessage('Erro ao carregar projeto para edição', 'error');
+            }
+        }
+        
+        async function deleteProject(id) {
+            if (!confirm('⚠️ Tem certeza que deseja excluir este projeto? Esta ação não pode ser desfeita!')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    showMessage('✅ Projeto excluído com sucesso!', 'success');
+                    loadProjects();
+                    
+                    if (document.getElementById('projectId').value == id) {
+                        resetForm();
+                    }
+                } else {
+                    const error = await response.json();
+                    showMessage(`❌ Erro: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`❌ Erro de conexão: ${error.message}`, 'error');
+            }
+        }
+        
+        function resetForm() {
+            document.getElementById('projectForm').reset();
+            document.getElementById('projectId').value = '';
+            document.getElementById('formTitle').textContent = '📝 Adicionar Novo Projeto';
+            document.getElementById('submitBtn').textContent = '➕ Adicionar Projeto';
+            document.getElementById('cancelBtn').style.display = 'none';
+            document.getElementById('currentImageInfo').style.display = 'none';
+            document.getElementById('imagemUpload').value = '';
+        }
+        
+        function showMessage(msg, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="message ${type}">${msg}</div>`;
+            
+            messageDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            
+            setTimeout(() => {
+                if (messageDiv.innerHTML.includes(msg)) {
+                    messageDiv.innerHTML = '';
+                }
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
