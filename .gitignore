@@ -1,5 +1,55 @@
+# Dependências
 node_modules/
+npm-debug.log
+yarn-error.log
+
+# Banco de dados
 portfolio.db
+portfolio.db-journal
+*.db
+*.sqlite
+*.sqlite3
+
+# Arquivos de log
 *.log
+logs/
+.log
+
+# Arquivos do sistema operacional
 .DS_Store
+Thumbs.db
+desktop.ini
+
+# Ambiente e variáveis
 .env
+.env.local
+.env.production
+
+# Arquivos de editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Arquivos de build e cache
+dist/
+build/
+.cache/
+
+# Arquivos temporários
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Configurações do Render
+.render/
+
+# Uploads (imagens enviadas)
+src/imagensprojetos/
+
+# Backup do banco
+*.backup

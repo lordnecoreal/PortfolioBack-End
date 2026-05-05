@@ -4,6 +4,43 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Portfólio</title>
+    <!-- Proteção contra inspeção -->
+    <script>
+        // Bloquear F12, Ctrl+Shift+I, Ctrl+U, Ctrl+S
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F12' || 
+                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')) ||
+                (e.ctrlKey && (e.key === 'u' || e.key === 'U')) ||
+                (e.ctrlKey && (e.key === 's' || e.key === 'S'))) {
+                e.preventDefault();
+                return false;
+            }
+        });
+        
+        // Bloquear clique direito
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
+        
+        // Detectar se DevTools está aberto
+        let devtoolsOpen = false;
+        const element = new Image();
+        Object.defineProperty(element, 'id', {
+            get: function() {
+                devtoolsOpen = true;
+                window.location.href = '/';
+            }
+        });
+        setInterval(() => {
+            devtoolsOpen = false;
+            console.log(element);
+            console.clear();
+            if (devtoolsOpen) {
+                window.location.href = '/';
+            }
+        }, 1000);
+    </script>
     <style>
         * {
             margin: 0;
@@ -60,6 +97,7 @@
             padding: 8px 15px;
             border-radius: 5px;
             transition: background 0.3s;
+            cursor: pointer;
         }
 
         .nav-link:hover {
@@ -227,10 +265,6 @@
                 flex-direction: column;
                 gap: 10px;
             }
-            .nav-menu {
-                width: 100%;
-                justify-content: center;
-            }
             body {
                 padding-top: 100px;
             }
@@ -246,8 +280,8 @@
                 <p>Painel Administrativo</p>
             </div>
             <div class="nav-menu">
-                <a href="#formulario" class="nav-link" id="menuNovo">➕ Novo Projeto</a>
-                <a href="#lista" class="nav-link" id="menuLista">📋 Meus Projetos</a>
+                <div class="nav-link" id="menuNovo">➕ Novo Projeto</div>
+                <div class="nav-link" id="menuLista">📋 Meus Projetos</div>
                 <div class="user-info">
                     <span>👤 <span id="usuarioLogado">Admin</span></span>
                     <button onclick="fazerLogout()" class="btn-logout">🚪 Sair</button>
@@ -308,12 +342,13 @@
     </div>
 
     <script>
-        // VERIFICAÇÃO DE LOGIN
+        // VERIFICAÇÃO DE LOGIN E TOKEN
         (function verificarLogin() {
             const adminLogado = sessionStorage.getItem('admin_logado');
             const adminUsuario = sessionStorage.getItem('admin_usuario');
+            const adminToken = sessionStorage.getItem('admin_token');
             
-            if (!adminLogado || adminLogado !== 'true') {
+            if (!adminLogado || adminLogado !== 'true' || !adminToken) {
                 window.location.href = '/login';
             }
             
@@ -322,25 +357,32 @@
             }
         })();
         
+        // Configuração da API
+        const API_URL = '/projetos';
+        const token = sessionStorage.getItem('admin_token');
+        const usuario = sessionStorage.getItem('admin_usuario');
+        
+        // Headers de autenticação
+        const authHeaders = {
+            'Authorization': 'BearerTokenLordNeco2026',
+            'X-User': usuario
+        };
+        
         function fazerLogout() {
             sessionStorage.removeItem('admin_logado');
             sessionStorage.removeItem('admin_usuario');
+            sessionStorage.removeItem('admin_token');
             window.location.href = '/login';
         }
         
         // Menu scroll suave
         document.getElementById('menuNovo').addEventListener('click', (e) => {
-            e.preventDefault();
             document.getElementById('formulario').scrollIntoView({ behavior: 'smooth' });
         });
         
         document.getElementById('menuLista').addEventListener('click', (e) => {
-            e.preventDefault();
             document.getElementById('lista').scrollIntoView({ behavior: 'smooth' });
         });
-        
-        // Configuração da API
-        const API_URL = 'http://localhost:3000/projetos';
         
         // Carregar projetos ao abrir a página
         document.addEventListener('DOMContentLoaded', () => {
@@ -373,6 +415,7 @@
                 if (id) {
                     response = await fetch(`${API_URL}/${id}`, {
                         method: 'PUT',
+                        headers: authHeaders,
                         body: formData
                     });
                     
@@ -382,11 +425,17 @@
                         loadProjects();
                     } else {
                         const error = await response.json();
-                        showMessage(`❌ Erro: ${error.error}`, 'error');
+                        if (response.status === 401 || response.status === 403) {
+                            showMessage('❌ Sessão expirada. Faça login novamente.', 'error');
+                            setTimeout(() => fazerLogout(), 2000);
+                        } else {
+                            showMessage(`❌ Erro: ${error.error}`, 'error');
+                        }
                     }
                 } else {
                     response = await fetch(API_URL, {
                         method: 'POST',
+                        headers: authHeaders,
                         body: formData
                     });
                     
@@ -396,7 +445,12 @@
                         loadProjects();
                     } else {
                         const error = await response.json();
-                        showMessage(`❌ Erro: ${error.error}`, 'error');
+                        if (response.status === 401 || response.status === 403) {
+                            showMessage('❌ Sessão expirada. Faça login novamente.', 'error');
+                            setTimeout(() => fazerLogout(), 2000);
+                        } else {
+                            showMessage(`❌ Erro: ${error.error}`, 'error');
+                        }
                     }
                 }
             } catch (error) {
@@ -422,11 +476,11 @@
                 
                 container.innerHTML = projects.map(project => `
                     <div class="project-card">
-                        <h3>${project.nome}</h3>
-                        ${project.imagem ? `<img src="http://localhost:3000${project.imagem}" alt="${project.nome}" class="project-image-preview" onerror="this.style.display='none'">` : ''}
-                        <p><strong>Descrição:</strong> ${project.descricao}</p>
-                        <p><strong>GitHub:</strong> <a href="${project.githubLink}" target="_blank">${project.githubLink}</a></p>
-                        <p><strong>Site:</strong> <a href="${project.liveLink}" target="_blank">${project.liveLink}</a></p>
+                        <h3>${escapeHtml(project.nome)}</h3>
+                        ${project.imagem ? `<img src="${project.imagem}" alt="${escapeHtml(project.nome)}" class="project-image-preview" onerror="this.style.display='none'">` : ''}
+                        <p><strong>Descrição:</strong> ${escapeHtml(project.descricao)}</p>
+                        <p><strong>GitHub:</strong> <a href="${project.githubLink}" target="_blank">${escapeHtml(project.githubLink)}</a></p>
+                        <p><strong>Site:</strong> <a href="${project.liveLink}" target="_blank">${escapeHtml(project.liveLink)}</a></p>
                         <p><strong>ID:</strong> ${project.id}</p>
                         <div style="margin-top: 10px;">
                             <button class="btn-edit" onclick="editProject(${project.id})">✏️ Editar</button>
@@ -474,7 +528,8 @@
             
             try {
                 const response = await fetch(`${API_URL}/${id}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: authHeaders
                 });
                 
                 if (response.ok) {
@@ -486,7 +541,12 @@
                     }
                 } else {
                     const error = await response.json();
-                    showMessage(`❌ Erro: ${error.error}`, 'error');
+                    if (response.status === 401 || response.status === 403) {
+                        showMessage('❌ Sessão expirada. Faça login novamente.', 'error');
+                        setTimeout(() => fazerLogout(), 2000);
+                    } else {
+                        showMessage(`❌ Erro: ${error.error}`, 'error');
+                    }
                 }
             } catch (error) {
                 showMessage(`❌ Erro de conexão: ${error.message}`, 'error');
@@ -514,6 +574,12 @@
                     messageDiv.innerHTML = '';
                 }
             }, 3000);
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
     </script>
 </body>

@@ -4,6 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Painel Admin</title>
+    <!-- Prevenir inspeção -->
+    <script>
+        // Bloquear F12, Ctrl+Shift+I, Ctrl+U, Ctrl+S
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F12' || 
+                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')) ||
+                (e.ctrlKey && (e.key === 'u' || e.key === 'U')) ||
+                (e.ctrlKey && (e.key === 's' || e.key === 'S'))) {
+                e.preventDefault();
+                return false;
+            }
+        });
+        
+        // Bloquear clique direito
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
+        
+        // Detectar se DevTools está aberto
+        setInterval(function() {
+            if (window.devtools && window.devtools.isOpen) {
+                window.location.href = '/';
+            }
+        }, 1000);
+    </script>
     <style>
         * {
             margin: 0;
@@ -48,6 +74,7 @@
 
         .form-group {
             margin-bottom: 20px;
+            position: relative;
         }
 
         label {
@@ -64,11 +91,25 @@
             border-radius: 5px;
             font-size: 14px;
             transition: border-color 0.3s;
+            padding-right: 45px;
         }
 
         input:focus {
             outline: none;
             border-color: #667eea;
+        }
+
+        /* Botão do olho */
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+            cursor: pointer;
+            font-size: 20px;
+            user-select: none;
+            background: none;
+            border: none;
+            padding: 0;
         }
 
         button {
@@ -125,12 +166,13 @@
         <form id="loginForm">
             <div class="form-group">
                 <label>👤 Usuário</label>
-                <input type="text" id="usuario" required placeholder="Digite seu usuário">
+                <input type="text" id="usuario" required placeholder="Digite seu usuário" autocomplete="off">
             </div>
             
             <div class="form-group">
                 <label>🔑 Senha</label>
                 <input type="password" id="senha" required placeholder="Digite sua senha">
+                <button type="button" class="toggle-password" id="toggleSenha">👁️</button>
             </div>
             
             <button type="submit">Entrar no Painel</button>
@@ -143,8 +185,22 @@
 
     <script>
         // CONFIGURAÇÕES DE ACESSO - ALTERE AQUI!!!
-        const ADMIN_USER = 'lordneco';      // Usuário para login
-        const ADMIN_PASSWORD = 'LordNeco2026';  // Senha para login
+        const ADMIN_USER = 'lordneco';
+        const ADMIN_PASSWORD = 'LordNeco2026';
+        
+        // Função para mostrar/esconder senha
+        const toggleSenha = document.getElementById('toggleSenha');
+        const senhaInput = document.getElementById('senha');
+        
+        toggleSenha.addEventListener('click', function() {
+            if (senhaInput.type === 'password') {
+                senhaInput.type = 'text';
+                toggleSenha.textContent = '🙈';
+            } else {
+                senhaInput.type = 'password';
+                toggleSenha.textContent = '👁️';
+            }
+        });
         
         // Verificar se já está logado
         if (sessionStorage.getItem('admin_logado') === 'true') {
@@ -158,9 +214,11 @@
             const senha = document.getElementById('senha').value;
             
             if (usuario === ADMIN_USER && senha === ADMIN_PASSWORD) {
-                // Login bem-sucedido
+                // Login bem-sucedido - gera token simples
+                const token = btoa(usuario + ':' + new Date().getTime());
                 sessionStorage.setItem('admin_logado', 'true');
                 sessionStorage.setItem('admin_usuario', usuario);
+                sessionStorage.setItem('admin_token', token);
                 window.location.href = '/admin';
             } else {
                 // Login falhou
@@ -171,7 +229,6 @@
                 // Limpar senha
                 document.getElementById('senha').value = '';
                 
-                // Esconder mensagem após 3 segundos
                 setTimeout(() => {
                     errorDiv.style.display = 'none';
                 }, 3000);
