@@ -6,7 +6,7 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Middlewares
 app.use(cors());
@@ -57,7 +57,7 @@ app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'front', 'login.html'));
 });
 
-// ============ ROTA PRINCIPAL - PÁGINA SIMPLIFICADA ============
+// ============ ROTA PRINCIPAL - PÁGINA INICIAL COM HEADER ============
 app.get('/', (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -67,114 +67,317 @@ app.get('/', (req, res) => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>API do Portfólio - Lord Neco</title>
         <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
             body {
-                font-family: Arial, sans-serif;
-                max-width: 600px;
-                margin: 50px auto;
-                padding: 20px;
-                text-align: center;
-                background: #1a1a1a;
-                color: #fff;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: #f5f5f5;
+                padding-top: 70px;
             }
+
+            /* HEADER FIXO */
+            .header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 15px 30px;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                z-index: 1000;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+
+            .header-content {
+                max-width: 1200px;
+                margin: 0 auto;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .logo h1 {
+                font-size: 20px;
+                margin-bottom: 5px;
+            }
+
+            .logo p {
+                font-size: 12px;
+                opacity: 0.9;
+            }
+
+            .nav-menu {
+                display: flex;
+                gap: 20px;
+                align-items: center;
+            }
+
+            .nav-link {
+                color: white;
+                text-decoration: none;
+                padding: 8px 15px;
+                border-radius: 5px;
+                transition: background 0.3s;
+            }
+
+            .nav-link:hover {
+                background: rgba(255,255,255,0.2);
+            }
+
+            .btn-admin {
+                background: #ff9800;
+                color: white;
+                border: none;
+                padding: 8px 20px;
+                border-radius: 20px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: bold;
+                transition: background 0.3s;
+            }
+
+            .btn-admin:hover {
+                background: #e68900;
+            }
+
+            /* CONTEÚDO PRINCIPAL */
             .container {
-                background: #2d2d2d;
-                padding: 30px;
-                border-radius: 10px;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
             }
+
+            .card {
+                background: white;
+                border-radius: 10px;
+                padding: 30px;
+                margin-bottom: 20px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+
             h1 {
                 color: #667eea;
                 margin-bottom: 10px;
+                font-size: 28px;
             }
-            .url {
-                background: #1a1a1a;
+
+            h2 {
+                color: #764ba2;
+                margin-bottom: 20px;
+                border-bottom: 2px solid #764ba2;
+                padding-bottom: 10px;
+            }
+
+            .endpoint {
+                background: #f8f9fa;
+                border-left: 4px solid #667eea;
                 padding: 15px;
+                margin: 15px 0;
                 border-radius: 5px;
-                margin: 20px 0;
-                font-family: monospace;
-                font-size: 18px;
-                word-break: break-all;
             }
-            .url span {
-                color: #4CAF50;
+
+            .method {
+                display: inline-block;
+                font-weight: bold;
+                padding: 3px 8px;
+                border-radius: 4px;
+                font-size: 12px;
+                margin-right: 10px;
             }
-            .exemplo {
-                background: #1a1a1a;
-                padding: 10px;
-                border-radius: 5px;
+
+            .get { background: #4CAF50; color: white; }
+            .post { background: #2196F3; color: white; }
+            .put { background: #FF9800; color: white; }
+            .delete { background: #f44336; color: white; }
+
+            .url {
                 font-family: monospace;
                 font-size: 14px;
-                margin: 10px 0;
+                color: #667eea;
+                background: #e9ecef;
+                padding: 3px 8px;
+                border-radius: 3px;
             }
+
             code {
-                background: #1a1a1a;
+                background: #e9ecef;
                 padding: 2px 5px;
                 border-radius: 3px;
-                color: #ff6b6b;
+                font-family: monospace;
+                font-size: 13px;
             }
-            .footer {
-                margin-top: 30px;
-                font-size: 12px;
-                color: #888;
-            }
-            hr {
-                border-color: #444;
-                margin: 20px 0;
-            }
-            .btn {
-                display: inline-block;
-                background: #667eea;
-                color: white;
-                padding: 10px 20px;
-                text-decoration: none;
+
+            .example {
+                background: #e9ecef;
+                padding: 10px;
                 border-radius: 5px;
                 margin-top: 10px;
+                font-size: 13px;
+            }
+
+            .footer {
+                text-align: center;
+                margin-top: 30px;
+                padding: 20px;
+                color: #888;
+                font-size: 12px;
+            }
+
+            .status {
+                display: inline-block;
+                width: 10px;
+                height: 10px;
+                background: #4CAF50;
+                border-radius: 50%;
+                margin-right: 5px;
+                animation: pulse 2s infinite;
+            }
+
+            @keyframes pulse {
+                0% { opacity: 1; }
+                50% { opacity: 0.5; }
+                100% { opacity: 1; }
+            }
+
+            @media (max-width: 768px) {
+                .header-content {
+                    flex-direction: column;
+                    gap: 10px;
+                }
+                body {
+                    padding-top: 100px;
+                }
+                .card {
+                    padding: 20px;
+                }
             }
         </style>
     </head>
     <body>
+        <!-- HEADER FIXO -->
+        <div class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <h1>🎨 API do Portfólio</h1>
+                    <p>Lord Neco</p>
+                </div>
+                <div class="nav-menu">
+                    <a href="#documentacao" class="nav-link">📚 Documentação</a>
+                    <a href="#exemplos" class="nav-link">📡 Exemplos</a>
+                    <button onclick="irParaAdmin()" class="btn-admin">🔐 Área Administrativa</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTEÚDO PRINCIPAL -->
         <div class="container">
-            <h1>🎨 API do Portfólio</h1>
-            <p>Lord Neco</p>
-            
-            <hr>
-            
-            <h2>📌 Como acessar os dados</h2>
-            <p>Para visualizar todos os projetos, adicione <code>/projetos</code> no final da URL:</p>
-            
-            <div class="url">
-                <span>URL atual:</span> http://localhost:3000<br>
-                <span>URL com dados:</span> http://localhost:3000/<strong style="color:#4CAF50">projetos</strong>
+            <div class="card" id="documentacao">
+                <h1>🎨 Bem-vindo à API do Portfólio</h1>
+                <p>Esta API fornece acesso aos projetos do meu portfólio. Utilize os endpoints abaixo para interagir com os dados.</p>
+                
+                <h2>📌 Endpoints Disponíveis</h2>
+                
+                <div class="endpoint">
+                    <div>
+                        <span class="method get">GET</span>
+                        <span class="url">/projetos</span>
+                    </div>
+                    <p>📋 Lista todos os projetos cadastrados</p>
+                </div>
+                
+                <div class="endpoint">
+                    <div>
+                        <span class="method get">GET</span>
+                        <span class="url">/projetos/:id</span>
+                    </div>
+                    <p>🔍 Busca um projeto específico pelo ID</p>
+                </div>
+                
+                <div class="endpoint">
+                    <div>
+                        <span class="method post">POST</span>
+                        <span class="url">/projetos</span>
+                    </div>
+                    <p>➕ Adiciona um novo projeto (requer autenticação)</p>
+                </div>
+                
+                <div class="endpoint">
+                    <div>
+                        <span class="method put">PUT</span>
+                        <span class="url">/projetos/:id</span>
+                    </div>
+                    <p>✏️ Atualiza um projeto existente (requer autenticação)</p>
+                </div>
+                
+                <div class="endpoint">
+                    <div>
+                        <span class="method delete">DELETE</span>
+                        <span class="url">/projetos/:id</span>
+                    </div>
+                    <p>🗑️ Remove um projeto (requer autenticação)</p>
+                </div>
             </div>
-            
-            <div class="exemplo">
-                💡 Exemplo: <strong>http://localhost:3000/projetos</strong>
+
+            <div class="card" id="exemplos">
+                <h2>📡 Exemplos de Uso</h2>
+                
+                <div class="example">
+                    <strong>📋 Listar todos os projetos:</strong><br>
+                    <code>GET /projetos</code>
+                </div>
+                
+                <div class="example">
+                    <strong>🔍 Buscar projeto com ID 1:</strong><br>
+                    <code>GET /projetos/1</code>
+                </div>
+                
+                <div class="example">
+                    <strong>➕ Adicionar novo projeto (via POST):</strong><br>
+                    <code>
+                    {<br>
+                    &nbsp;&nbsp;"nome": "Meu Novo Projeto",<br>
+                    &nbsp;&nbsp;"descricao": "Descrição do projeto",<br>
+                    &nbsp;&nbsp;"githubLink": "https://github.com/...",<br>
+                    &nbsp;&nbsp;"liveLink": "https://...vercel.app/"<br>
+                    }
+                    </code>
+                    <br><br>
+                    <small>⚠️ A imagem deve ser enviada via formulário multipart/form-data</small>
+                </div>
+                
+                <div class="example">
+                    <strong>🖼️ Acessar uma imagem:</strong><br>
+                    <code>GET /src/imagensprojetos/nome-da-imagem.png</code>
+                </div>
             </div>
-            
-            <hr>
-            
-            <h2>🔍 Painel Administrativo</h2>
-            <p>Acesse o painel para gerenciar seus projetos:</p>
-            <a href="/login" class="btn">🔐 Acessar Painel Admin</a>
-            
-            <hr>
-            
-            <h2>📡 Outros exemplos</h2>
-            <div class="exemplo">
-                📋 Buscar projeto específico:<br>
-                <code>http://localhost:3000/projetos/1</code>
+
+            <div class="card">
+                <h2>🔐 Área Administrativa</h2>
+                <p>Para gerenciar seus projetos (adicionar, editar, excluir), acesse o painel administrativo:</p>
+                <br>
+                <button onclick="irParaAdmin()" style="background: #667eea; color: white; border: none; padding: 12px 24px; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                    🔐 Ir para o Painel Admin
+                </button>
+                <br><br>
+                <small>⚠️ Acesso restrito - requer login de administrador</small>
             </div>
-            
-            <div class="exemplo">
-                🖼️ Ver uma imagem:<br>
-                <code>http://localhost:3000/src/imagensprojetos/desafiofinal.png</code>
-            </div>
-            
+
             <div class="footer">
                 <p>🚀 Desenvolvido por Lord Neco</p>
+                <p>📊 Status da API: <span class="status"></span> <span id="statusTexto">Online</span></p>
                 <p>© 2026 - API do Portfólio</p>
             </div>
         </div>
+
+        <script>
+            function irParaAdmin() {
+                window.location.href = '/login';
+            }
+        </script>
     </body>
     </html>
   `);
@@ -214,13 +417,11 @@ app.post('/projetos', upload.single('imagem'), (req, res) => {
   try {
     const { nome, descricao, githubLink, liveLink } = req.body;
     
-    // Validar campos obrigatórios
     if (!nome || !descricao || !githubLink || !liveLink) {
       res.status(400).json({ error: 'Campos obrigatórios: nome, descricao, githubLink, liveLink' });
       return;
     }
     
-    // Validar se arquivo foi enviado
     if (!req.file) {
       res.status(400).json({ error: 'Imagem é obrigatória' });
       return;
@@ -235,7 +436,6 @@ app.post('/projetos', upload.single('imagem'), (req, res) => {
     
     db.run(sql, [nome, descricao, imagemPath, githubLink, liveLink], function(err) {
       if (err) {
-        // Se der erro, deletar arquivo de imagem
         if (req.file && req.file.path && fs.existsSync(req.file.path)) {
           fs.unlinkSync(req.file.path);
         }
@@ -262,7 +462,6 @@ app.put('/projetos/:id', upload.single('imagem'), (req, res) => {
   const { id } = req.params;
   const { nome, descricao, githubLink, liveLink } = req.body;
   
-  // Primeiro, buscar o projeto atual
   db.get('SELECT * FROM projetos WHERE id = ?', [id], (err, projeto) => {
     if (err) {
       res.status(500).json({ error: err.message });
@@ -275,14 +474,11 @@ app.put('/projetos/:id', upload.single('imagem'), (req, res) => {
     
     let imagemPath = projeto.imagem;
     
-    // Se nova imagem foi enviada
     if (req.file) {
-      // Deletar imagem antiga se existir
       if (projeto.imagem) {
         const oldImagePath = path.join(__dirname, projeto.imagem);
         if (fs.existsSync(oldImagePath)) {
           fs.unlinkSync(oldImagePath);
-          console.log(`🗑️ Imagem antiga deletada: ${oldImagePath}`);
         }
       }
       imagemPath = `/src/imagensprojetos/${req.file.filename}`;
@@ -296,7 +492,6 @@ app.put('/projetos/:id', upload.single('imagem'), (req, res) => {
     
     db.run(sql, [nome, descricao, imagemPath, githubLink, liveLink, id], function(err) {
       if (err) {
-        // Se houve upload de imagem e deu erro, deletar a nova imagem
         if (req.file && req.file.path && fs.existsSync(req.file.path)) {
           fs.unlinkSync(req.file.path);
         }
@@ -318,7 +513,6 @@ app.put('/projetos/:id', upload.single('imagem'), (req, res) => {
 app.delete('/projetos/:id', (req, res) => {
   const { id } = req.params;
   
-  // Buscar o projeto para pegar o caminho da imagem
   db.get('SELECT imagem FROM projetos WHERE id = ?', [id], (err, projeto) => {
     if (err) {
       res.status(500).json({ error: err.message });
@@ -329,19 +523,16 @@ app.delete('/projetos/:id', (req, res) => {
       return;
     }
     
-    // Deletar do banco
     db.run('DELETE FROM projetos WHERE id = ?', [id], function(err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
       
-      // Deletar arquivo de imagem se existir
       if (projeto.imagem) {
         const imagePath = path.join(__dirname, projeto.imagem);
         if (fs.existsSync(imagePath)) {
           fs.unlinkSync(imagePath);
-          console.log(`🗑️ Imagem deletada: ${imagePath}`);
         }
       }
       
