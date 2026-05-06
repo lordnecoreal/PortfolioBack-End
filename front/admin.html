@@ -4,20 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Portfólio</title>
-    <!-- Proteção contra inspeção -->
     <script>
-        // Bloquear F12, Ctrl+Shift+I, Ctrl+U, Ctrl+S
         document.addEventListener('keydown', function(e) {
             if (e.key === 'F12' || 
                 (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')) ||
-                (e.ctrlKey && (e.key === 'u' || e.key === 'U')) ||
-                (e.ctrlKey && (e.key === 's' || e.key === 'S'))) {
+                (e.ctrlKey && (e.key === 'u' || e.key === 'U'))) {
                 e.preventDefault();
                 return false;
             }
         });
         
-        // Bloquear clique direito
         document.addEventListener('contextmenu', function(e) {
             e.preventDefault();
             return false;
@@ -36,7 +32,6 @@
             padding-top: 70px;
         }
 
-        /* HEADER FIXO */
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -109,7 +104,6 @@
             background: #c82333;
         }
 
-        /* CONTEÚDO PRINCIPAL */
         .container {
             max-width: 800px;
             margin: 0 auto 20px auto;
@@ -254,7 +248,6 @@
     </style>
 </head>
 <body>
-    <!-- HEADER FIXO COM MENU -->
     <div class="header">
         <div class="header-content">
             <div class="logo">
@@ -272,10 +265,8 @@
         </div>
     </div>
 
-    <!-- FORMULÁRIO PARA ADICIONAR/EDITAR PROJETOS -->
     <div id="formulario" class="container">
         <h2 id="formTitle">📝 Adicionar Novo Projeto</h2>
-        
         <div id="message"></div>
         
         <form id="projectForm" enctype="multipart/form-data">
@@ -315,7 +306,6 @@
         </form>
     </div>
 
-    <!-- LISTA DE PROJETOS EXISTENTES -->
     <div id="lista" class="container">
         <h2>📋 Meus Projetos</h2>
         <div id="projectsList">
@@ -324,11 +314,11 @@
     </div>
 
     <script>
-        // VERIFICAÇÃO DE LOGIN E TOKEN
+        // VERIFICAÇÃO DE LOGIN
         (function verificarLogin() {
             const adminLogado = sessionStorage.getItem('admin_logado');
-            const adminUsuario = sessionStorage.getItem('admin_usuario');
             const adminToken = sessionStorage.getItem('admin_token');
+            const adminUsuario = sessionStorage.getItem('admin_usuario');
             
             if (!adminLogado || adminLogado !== 'true' || !adminToken) {
                 window.location.href = '/login';
@@ -339,16 +329,25 @@
             }
         })();
         
-        // Configuração da API
-        const API_URL = '/projetos';
-        const token = sessionStorage.getItem('admin_token');
-        const usuario = sessionStorage.getItem('admin_usuario');
+        // HEADERS DE AUTENTICAÇÃO
+        function getAuthHeaders() {
+            const token = sessionStorage.getItem('admin_token');
+            const usuario = sessionStorage.getItem('admin_usuario');
+            
+            return {
+                'Authorization': token || '',
+                'X-User': usuario || ''
+            };
+        }
         
-        // Headers de autenticação
-        const authHeaders = {
-            'Authorization': 'BearerTokenLordNeco2026',
-            'X-User': usuario
-        };
+        // VERIFICAR SE O TOKEN É VÁLIDO
+        function isTokenValid() {
+            const token = sessionStorage.getItem('admin_token');
+            const usuario = sessionStorage.getItem('admin_usuario');
+            return token && token !== 'null' && token !== 'undefined' && usuario;
+        }
+        
+        const API_URL = '/projetos';
         
         function fazerLogout() {
             sessionStorage.removeItem('admin_logado');
@@ -357,7 +356,6 @@
             window.location.href = '/login';
         }
         
-        // Menu scroll suave
         document.getElementById('menuNovo').addEventListener('click', (e) => {
             document.getElementById('formulario').scrollIntoView({ behavior: 'smooth' });
         });
@@ -366,29 +364,32 @@
             document.getElementById('lista').scrollIntoView({ behavior: 'smooth' });
         });
         
-        // Carregar projetos ao abrir a página
         document.addEventListener('DOMContentLoaded', () => {
+            if (!isTokenValid()) {
+                fazerLogout();
+                return;
+            }
             loadProjects();
         });
         
-        // Configurar formulário com upload e ALERTA DE CONFIRMAÇÃO
         document.getElementById('projectForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            if (!isTokenValid()) {
+                alert('Sessão expirada. Faça login novamente.');
+                fazerLogout();
+                return;
+            }
             
             const id = document.getElementById('projectId').value;
             const isEditing = id !== '';
             
-            // ALERTA: Perguntar se quer salvar as alterações
             const confirmarSalvar = confirm('⚠️ Deseja salvar as alterações?');
-            
             if (!confirmarSalvar) {
-                // Usuário clicou em "Cancelar" (Não)
                 return;
             }
             
-            // Usuário clicou em "OK" (Sim) - continuar com o salvamento
             const formData = new FormData();
-            
             formData.append('nome', document.getElementById('nome').value);
             formData.append('descricao', document.getElementById('descricao').value);
             formData.append('githubLink', document.getElementById('githubLink').value);
@@ -404,47 +405,35 @@
             
             try {
                 let response;
+                const headers = getAuthHeaders();
                 
                 if (id) {
                     response = await fetch(`${API_URL}/${id}`, {
                         method: 'PUT',
-                        headers: authHeaders,
+                        headers: headers,
                         body: formData
                     });
-                    
-                    if (response.ok) {
-                        alert('✅ Informações salvas com sucesso!');
-                        resetForm();
-                        loadProjects();
-                    } else {
-                        const error = await response.json();
-                        if (response.status === 401 || response.status === 403) {
-                            alert('❌ Sessão expirada. Faça login novamente.');
-                            setTimeout(() => fazerLogout(), 2000);
-                        } else {
-                            alert(`❌ Erro: ${error.error}`);
-                        }
-                    }
                 } else {
                     response = await fetch(API_URL, {
                         method: 'POST',
-                        headers: authHeaders,
+                        headers: headers,
                         body: formData
                     });
-                    
-                    if (response.ok) {
-                        alert('✅ Informações salvas com sucesso!');
-                        resetForm();
-                        loadProjects();
-                    } else {
-                        const error = await response.json();
-                        if (response.status === 401 || response.status === 403) {
-                            alert('❌ Sessão expirada. Faça login novamente.');
-                            setTimeout(() => fazerLogout(), 2000);
-                        } else {
-                            alert(`❌ Erro: ${error.error}`);
-                        }
-                    }
+                }
+                
+                if (response.status === 401 || response.status === 403) {
+                    alert('❌ Sessão expirada. Faça login novamente.');
+                    fazerLogout();
+                    return;
+                }
+                
+                if (response.ok) {
+                    alert('✅ Informações salvas com sucesso!');
+                    resetForm();
+                    loadProjects();
+                } else {
+                    const error = await response.json();
+                    alert(`❌ Erro: ${error.error || 'Erro desconhecido'}`);
                 }
             } catch (error) {
                 alert(`❌ Erro de conexão: ${error.message}`);
@@ -487,6 +476,12 @@
         }
         
         async function editProject(id) {
+            if (!isTokenValid()) {
+                alert('Sessão expirada. Faça login novamente.');
+                fazerLogout();
+                return;
+            }
+            
             try {
                 const response = await fetch(`${API_URL}/${id}`);
                 const project = await response.json();
@@ -497,7 +492,7 @@
                 document.getElementById('githubLink').value = project.githubLink;
                 document.getElementById('liveLink').value = project.liveLink;
                 
-                if (project.imagem) {
+                if (project.imagem && !project.imagem.includes('cloudinary')) {
                     const imageName = project.imagem.split('/').pop();
                     document.getElementById('currentImageName').textContent = imageName;
                     document.getElementById('currentImageInfo').style.display = 'block';
@@ -515,31 +510,38 @@
         }
         
         async function deleteProject(id) {
+            if (!isTokenValid()) {
+                alert('Sessão expirada. Faça login novamente.');
+                fazerLogout();
+                return;
+            }
+            
             if (!confirm('⚠️ Tem certeza que deseja excluir este projeto? Esta ação não pode ser desfeita!')) {
                 return;
             }
             
             try {
+                const headers = getAuthHeaders();
                 const response = await fetch(`${API_URL}/${id}`, {
                     method: 'DELETE',
-                    headers: authHeaders
+                    headers: headers
                 });
+                
+                if (response.status === 401 || response.status === 403) {
+                    alert('❌ Sessão expirada. Faça login novamente.');
+                    fazerLogout();
+                    return;
+                }
                 
                 if (response.ok) {
                     alert('✅ Projeto excluído com sucesso!');
                     loadProjects();
-                    
                     if (document.getElementById('projectId').value == id) {
                         resetForm();
                     }
                 } else {
                     const error = await response.json();
-                    if (response.status === 401 || response.status === 403) {
-                        alert('❌ Sessão expirada. Faça login novamente.');
-                        setTimeout(() => fazerLogout(), 2000);
-                    } else {
-                        alert(`❌ Erro: ${error.error}`);
-                    }
+                    alert(`❌ Erro: ${error.error}`);
                 }
             } catch (error) {
                 alert(`❌ Erro de conexão: ${error.message}`);
