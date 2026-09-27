@@ -4,7 +4,6 @@ const db = require('./database');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const cloudinary = require('cloudinary').v2;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,21 +13,14 @@ const ADMIN_USER = process.env.ADMIN_USER || 'lordneco';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const API_SECRET = process.env.API_SECRET || 'goticorj';
 
-// Configurar Cloudinary com as variáveis de ambiente
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
-
 // Middlewares
 app.use(cors());
 app.use(express.json());
 
-// Configuração do multer para upload temporário (antes de enviar ao Cloudinary)
+// Configuração do multer para upload direto na pasta de imagens
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, 'temp');
+    const uploadDir = path.join(__dirname, 'src', 'imagensprojetos');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -37,7 +29,7 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
-    cb(null, 'temp-' + uniqueSuffix + ext);
+    cb(null, 'projeto-' + uniqueSuffix + ext);
   }
 });
 
@@ -140,15 +132,13 @@ app.get('/projetos/:id', (req, res) => {
   });
 });
 
-// 3. POST - Criar novo projeto COM CLOUDINARY
-app.post('/projetos', autenticarAdmin, upload.single('imagem'), async (req, res) => {
-  let tempFilePath = null;
-  
+// 3. POST - Criar novo projeto (PROTEGIDO)
+app.post('/projetos', autenticarAdmin, upload.single('imagem'), (req, res) => {
   try {
     const { nome, descricao, githubLink, liveLink } = req.body;
     
+    // Validar campos obrigatórios
     if (!nome || !descricao || !githubLink || !liveLink) {
-      // Limpar arquivo temporário se existir
       if (req.file && req.file.path && fs.existsSync(req.file.path)) {
         fs.unlinkSync(req.file.path);
       }
@@ -156,35 +146,24 @@ app.post('/projetos', autenticarAdmin, upload.single('imagem'), async (req, res)
       return;
     }
     
+    // Validar se arquivo foi enviado
     if (!req.file) {
       res.status(400).json({ error: 'Imagem é obrigatória' });
       return;
     }
     
-    tempFilePath = req.file.path;
-    
-    // Upload para o Cloudinary
-    const result = await cloudinary.uploader.upload(tempFilePath, {
-      folder: 'portfolio-projetos',
-      transformation: [
-        { width: 800, height: 600, crop: 'limit' }
-      ]
-    });
-    
-    const imagemUrl = result.secure_url;
-    
-    // Limpar arquivo temporário
-    if (tempFilePath && fs.existsSync(tempFilePath)) {
-      fs.unlinkSync(tempFilePath);
-    }
+    const imagemPath = `/src/imagensprojetos/${req.file.filename}`;
     
     const sql = `
       INSERT INTO projetos (nome, descricao, imagem, githubLink, liveLink)
       VALUES (?, ?, ?, ?, ?)
     `;
     
-    db.run(sql, [nome, descricao, imagemUrl, githubLink, liveLink], function(err) {
+    db.run(sql, [nome, descricao, imagemPath, githubLink, liveLink], function(err) {
       if (err) {
+        if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
         res.status(500).json({ error: err.message });
         return;
       }
@@ -193,29 +172,26 @@ app.post('/projetos', autenticarAdmin, upload.single('imagem'), async (req, res)
         id: this.lastID,
         nome,
         descricao,
-        imagem: imagemUrl,
+        imagem: imagemPath,
         githubLink,
         liveLink
       });
     });
-    
   } catch (error) {
-    // Limpar arquivo temporário em caso de erro
-    if (tempFilePath && fs.existsSync(tempFilePath)) {
-      fs.unlinkSync(tempFilePath);
+    if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
     }
-    console.error('Erro no upload:', error);
-    res.status(500).json({ error: 'Erro ao fazer upload da imagem: ' + error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
-// 4. PUT - Atualizar projeto COM CLOUDINARY
-app.put('/projetos/:id', autenticarAdmin, upload.single('imagem'), async (req, res) => {
+// 4. PUT - Atualizar projeto (PROTEGIDO)
+app.put('/projetos/:id', autenticarAdmin, upload.single('imagem'), (req, res) => {
   const { id } = req.params;
   const { nome, descricao, githubLink, liveLink } = req.body;
-  let tempFilePath = null;
   
-  db.get('SELECT * FROM projetos WHERE id = ?', [id], async (err, projeto) => {
+  // Primeiro, buscar o projeto atual
+  db.get('SELECT * FROM projetos WHERE id = ?', [id], (err, projeto) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -228,46 +204,19 @@ app.put('/projetos/:id', autenticarAdmin, upload.single('imagem'), async (req, r
       return;
     }
     
-    let imagemUrl = projeto.imagem;
+    let imagemPath = projeto.imagem;
     
     // Se nova imagem foi enviada
     if (req.file) {
-      tempFilePath = req.file.path;
-      
-      try {
-        // Fazer upload da nova imagem
-        const result = await cloudinary.uploader.upload(tempFilePath, {
-          folder: 'portfolio-projetos',
-          transformation: [
-            { width: 800, height: 600, crop: 'limit' }
-          ]
-        });
-        imagemUrl = result.secure_url;
-        
-        // Limpar arquivo temporário
-        if (tempFilePath && fs.existsSync(tempFilePath)) {
-          fs.unlinkSync(tempFilePath);
+      // Deletar imagem antiga se ela foi enviada pelo admin (não as fixas do database.js)
+      if (projeto.imagem && projeto.imagem.startsWith('/src/imagensprojetos/projeto-')) {
+        const oldImagePath = path.join(__dirname, projeto.imagem);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+          console.log(`🗑️ Imagem antiga deletada: ${oldImagePath}`);
         }
-        
-        // Opcional: deletar imagem antiga do Cloudinary (se for do Cloudinary)
-        if (projeto.imagem && projeto.imagem.includes('cloudinary')) {
-          try {
-            const publicId = projeto.imagem.split('/').slice(-2).join('/').split('.')[0];
-            await cloudinary.uploader.destroy(publicId);
-          } catch (deleteError) {
-            console.log('Não foi possível deletar imagem antiga:', deleteError);
-          }
-        }
-        
-      } catch (cloudinaryError) {
-        // Limpar arquivo temporário em caso de erro
-        if (tempFilePath && fs.existsSync(tempFilePath)) {
-          fs.unlinkSync(tempFilePath);
-        }
-        console.error('Erro no upload:', cloudinaryError);
-        res.status(500).json({ error: 'Erro ao fazer upload da imagem' });
-        return;
       }
+      imagemPath = `/src/imagensprojetos/${req.file.filename}`;
     }
     
     const sql = `
@@ -276,8 +225,11 @@ app.put('/projetos/:id', autenticarAdmin, upload.single('imagem'), async (req, r
       WHERE id = ?
     `;
     
-    db.run(sql, [nome, descricao, imagemUrl, githubLink, liveLink, id], function(err) {
+    db.run(sql, [nome, descricao, imagemPath, githubLink, liveLink, id], function(err) {
       if (err) {
+        if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
         res.status(500).json({ error: err.message });
         return;
       }
@@ -296,7 +248,8 @@ app.put('/projetos/:id', autenticarAdmin, upload.single('imagem'), async (req, r
 app.delete('/projetos/:id', autenticarAdmin, (req, res) => {
   const { id } = req.params;
   
-  db.get('SELECT imagem FROM projetos WHERE id = ?', [id], async (err, projeto) => {
+  // Buscar o projeto para pegar o caminho da imagem
+  db.get('SELECT imagem FROM projetos WHERE id = ?', [id], (err, projeto) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -306,22 +259,20 @@ app.delete('/projetos/:id', autenticarAdmin, (req, res) => {
       return;
     }
     
-    // Deletar imagem do Cloudinary se existir
-    if (projeto.imagem && projeto.imagem.includes('cloudinary')) {
-      try {
-        const publicId = projeto.imagem.split('/').slice(-2).join('/').split('.')[0];
-        await cloudinary.uploader.destroy(publicId);
-        console.log(`🗑️ Imagem deletada do Cloudinary: ${publicId}`);
-      } catch (cloudinaryError) {
-        console.log('Erro ao deletar imagem do Cloudinary:', cloudinaryError);
-      }
-    }
-    
-    // Deletar do banco de dados
+    // Deletar do banco
     db.run('DELETE FROM projetos WHERE id = ?', [id], function(err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
+      }
+      
+      // Deletar apenas imagens que foram enviadas pelo admin
+      if (projeto.imagem && projeto.imagem.startsWith('/src/imagensprojetos/projeto-')) {
+        const imagePath = path.join(__dirname, projeto.imagem);
+        if (fs.existsSync(imagePath)) {
+          fs.unlinkSync(imagePath);
+          console.log(`🗑️ Imagem deletada: ${imagePath}`);
+        }
       }
       
       res.json({ message: 'Projeto removido com sucesso' });
@@ -334,5 +285,4 @@ app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
   console.log(`📋 Para ver os projetos, acesse: http://localhost:${PORT}/projetos`);
   console.log(`🔐 Painel admin: http://localhost:${PORT}/login`);
-  console.log(`☁️ Cloudinary configurado: ${process.env.CLOUDINARY_CLOUD_NAME ? '✅ Sim' : '❌ Não'}`);
 });

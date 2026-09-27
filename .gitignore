@@ -48,13 +48,7 @@ build/
 # Configurações do Render
 .render/
 
-# Uploads (imagens enviadas)
-src/imagensprojetos/
-
 # Backup do banco
 *.backup
 
-# .env
-CLOUDINARY_CLOUD_NAME=sdiayzfpis 
-CLOUDINARY_API_KEY=314992397826827
-CLOUDINARY_API_SECRET=Wh_q47BeOXP-oXWUZljYEh__1M4
+.env
