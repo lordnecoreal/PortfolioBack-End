@@ -268,7 +268,6 @@
             <div class="nav-menu">
                 <div class="nav-link" id="menuNovo">➕ Novo Projeto</div>
                 <div class="nav-link" id="menuLista">📋 Meus Projetos</div>
-                <!-- NOVO BOTÃO -->
                 <div class="nav-link" id="menuConfig">⚙️ Configurações</div>
                 <div class="user-info">
                     <span>👤 <span id="usuarioLogado">Admin</span></span>
@@ -332,7 +331,6 @@
         </div>
     </div>
 
-    <!-- NOVA SEÇÃO: CONFIGURAÇÕES -->
     <div class="container" id="configuracoes">
         <h2>⚙️ Configurações do Portfólio</h2>
         
@@ -404,7 +402,6 @@
             document.getElementById('lista').scrollIntoView({ behavior: 'smooth' });
         });
 
-        // NOVO: Scroll para configurações
         document.getElementById('menuConfig').addEventListener('click', (e) => {
             document.getElementById('configuracoes').scrollIntoView({ behavior: 'smooth' });
         });
@@ -502,11 +499,18 @@
                 
                 projects.reverse();
                 
-                container.innerHTML = projects.map(project => `
+                // 👇 ADICIONADO A DATA AQUI
+                container.innerHTML = projects.map(project => {
+                    const dataFormatada = project.data_criacao 
+                        ? new Date(project.data_criacao).toLocaleDateString('pt-BR') 
+                        : 'Data não registrada';
+
+                    return `
                     <div class="project-card">
                         <span class="badge-categoria">${escapeHtml(project.categoria || 'Geral')}</span>
                         <h3>${escapeHtml(project.nome)}</h3>
                         ${project.imagem ? `<img src="${project.imagem}" alt="${escapeHtml(project.nome)}" class="project-image-preview" onerror="this.style.display='none'">` : ''}
+                        <p><strong>Criado em:</strong> ${dataFormatada}</p>
                         <p><strong>Descrição:</strong> ${escapeHtml(project.descricao)}</p>
                         <p><strong>GitHub:</strong> <a href="${project.githubLink}" target="_blank">${escapeHtml(project.githubLink)}</a></p>
                         <p><strong>Site:</strong> <a href="${project.liveLink}" target="_blank">${escapeHtml(project.liveLink)}</a></p>
@@ -516,7 +520,7 @@
                             <button class="btn-delete" onclick="deleteProject(${project.id})">🗑️ Excluir</button>
                         </div>
                     </div>
-                `).join('');
+                `}).join('');
             } catch (error) {
                 document.getElementById('projectsList').innerHTML = `<p style="color: red;">❌ Erro ao carregar: ${error.message}</p>`;
             }
@@ -613,9 +617,6 @@
             return div.innerHTML;
         }
 
-        // ==========================================
-        // NOVAS FUNÇÕES DE UPLOAD DE CONFIGURAÇÕES
-        // ==========================================
         async function uploadPerfil() {
             if (!isTokenValid()) return fazerLogout();
             
@@ -665,7 +666,7 @@
                     document.getElementById('musicaUpload').value = '';
                 } else {
                     const error = await response.json();
-                    alert(`❌ Erro: ${error.error}`);
+                    alert(`❌ Error: ${error.error}`);
                 }
             } catch (err) {
                 alert('❌ Erro de conexão ao enviar a música');

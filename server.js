@@ -26,7 +26,7 @@ app.use(express.json());
 
 // ==========================================
 // CONFIGURAÇÃO DO MULTER ATUALIZADA
-// (Agora aceita imagens de projetos, foto de perfil e música)
+// (Aceita imagens de projetos, foto de perfil e música)
 // ==========================================
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -53,7 +53,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
   storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB para caber as músicas
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
   fileFilter: (req, file, cb) => {
     if (file.fieldname === 'musica') {
       if (file.mimetype.startsWith('audio/')) return cb(null, true);
@@ -89,8 +89,8 @@ function autenticarAdmin(req, res, next) {
 
 // Servir arquivos estáticos
 app.use('/src/imagensprojetos', express.static(path.join(__dirname, 'src', 'imagensprojetos')));
-app.use('/src/uploads', express.static(path.join(__dirname, 'src', 'uploads'))); // NOVO
-app.use('/musicas', express.static(path.join(__dirname, 'public', 'musicas'))); // NOVO
+app.use('/src/uploads', express.static(path.join(__dirname, 'src', 'uploads')));
+app.use('/musicas', express.static(path.join(__dirname, 'public', 'musicas')));
 app.use('/front', express.static(path.join(__dirname, 'front')));
 
 // Rotas para páginas HTML
