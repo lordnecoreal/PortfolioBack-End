@@ -236,7 +236,6 @@
             font-size: 13px;
         }
 
-        /* Badge para a categoria */
         .badge-categoria {
             display: inline-block;
             background: #667eea;
@@ -269,6 +268,8 @@
             <div class="nav-menu">
                 <div class="nav-link" id="menuNovo">➕ Novo Projeto</div>
                 <div class="nav-link" id="menuLista">📋 Meus Projetos</div>
+                <!-- NOVO BOTÃO -->
+                <div class="nav-link" id="menuConfig">⚙️ Configurações</div>
                 <div class="user-info">
                     <span>👤 <span id="usuarioLogado">Admin</span></span>
                     <button onclick="fazerLogout()" class="btn-logout">🚪 Sair</button>
@@ -289,7 +290,6 @@
                 <input type="text" id="nome" required placeholder="Ex: Meu Projeto Incrível">
             </div>
             
-            <!-- NOVO CAMPO ADICIONADO AQUI -->
             <div class="form-group">
                 <label>Categoria *</label>
                 <input type="text" id="categoria" required placeholder="Ex: Site / Web, Jogo / Quiz, Ferramenta...">
@@ -329,6 +329,27 @@
         <h2>📋 Meus Projetos</h2>
         <div id="projectsList">
             <p>Carregando projetos...</p>
+        </div>
+    </div>
+
+    <!-- NOVA SEÇÃO: CONFIGURAÇÕES -->
+    <div class="container" id="configuracoes">
+        <h2>⚙️ Configurações do Portfólio</h2>
+        
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+            <div class="form-group" style="flex: 1; min-width: 250px;">
+                <label>Foto de Perfil</label>
+                <input type="file" id="perfilUpload" accept="image/*">
+                <div class="small-text">Recomendado: imagem quadrada</div>
+                <button type="button" onclick="uploadPerfil()" style="margin-top: 10px; background: #764ba2;">Salvar Foto</button>
+            </div>
+
+            <div class="form-group" style="flex: 1; min-width: 250px;">
+                <label>Música de Fundo (MP3)</label>
+                <input type="file" id="musicaUpload" accept="audio/mpeg, audio/mp3">
+                <div class="small-text">Formato MP3</div>
+                <button type="button" onclick="uploadMusica()" style="margin-top: 10px; background: #667eea;">Salvar Música</button>
+            </div>
         </div>
     </div>
 
@@ -382,6 +403,11 @@
         document.getElementById('menuLista').addEventListener('click', (e) => {
             document.getElementById('lista').scrollIntoView({ behavior: 'smooth' });
         });
+
+        // NOVO: Scroll para configurações
+        document.getElementById('menuConfig').addEventListener('click', (e) => {
+            document.getElementById('configuracoes').scrollIntoView({ behavior: 'smooth' });
+        });
         
         document.addEventListener('DOMContentLoaded', () => {
             if (!isTokenValid()) {
@@ -410,7 +436,6 @@
             
             const formData = new FormData();
             formData.append('nome', document.getElementById('nome').value);
-            // ENVIANDO A CATEGORIA AQUI
             formData.append('categoria', document.getElementById('categoria').value);
             formData.append('descricao', document.getElementById('descricao').value);
             formData.append('githubLink', document.getElementById('githubLink').value);
@@ -479,7 +504,6 @@
                 
                 container.innerHTML = projects.map(project => `
                     <div class="project-card">
-                        <!-- MOSTRANDO A CATEGORIA AQUI -->
                         <span class="badge-categoria">${escapeHtml(project.categoria || 'Geral')}</span>
                         <h3>${escapeHtml(project.nome)}</h3>
                         ${project.imagem ? `<img src="${project.imagem}" alt="${escapeHtml(project.nome)}" class="project-image-preview" onerror="this.style.display='none'">` : ''}
@@ -511,7 +535,6 @@
                 
                 document.getElementById('projectId').value = project.id;
                 document.getElementById('nome').value = project.nome;
-                // PREENCHENDO A CATEGORIA NO FORMULÁRIO
                 document.getElementById('categoria').value = project.categoria || 'Geral';
                 document.getElementById('descricao').value = project.descricao;
                 document.getElementById('githubLink').value = project.githubLink;
@@ -588,6 +611,65 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // ==========================================
+        // NOVAS FUNÇÕES DE UPLOAD DE CONFIGURAÇÕES
+        // ==========================================
+        async function uploadPerfil() {
+            if (!isTokenValid()) return fazerLogout();
+            
+            const file = document.getElementById('perfilUpload').files[0];
+            if (!file) return alert('Selecione uma imagem para o perfil');
+            
+            const formData = new FormData();
+            formData.append('perfil', file);
+            
+            try {
+                const response = await fetch('/configuracoes/perfil', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    alert('✅ Foto de perfil atualizada com sucesso!');
+                    document.getElementById('perfilUpload').value = '';
+                } else {
+                    const error = await response.json();
+                    alert(`❌ Erro: ${error.error}`);
+                }
+            } catch (err) {
+                alert('❌ Erro de conexão ao enviar a foto');
+            }
+        }
+
+        async function uploadMusica() {
+            if (!isTokenValid()) return fazerLogout();
+            
+            const file = document.getElementById('musicaUpload').files[0];
+            if (!file) return alert('Selecione um arquivo de música (MP3)');
+            
+            const formData = new FormData();
+            formData.append('musica', file);
+            
+            try {
+                const response = await fetch('/configuracoes/musica', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    alert('✅ Música de fundo atualizada com sucesso!');
+                    document.getElementById('musicaUpload').value = '';
+                } else {
+                    const error = await response.json();
+                    alert(`❌ Erro: ${error.error}`);
+                }
+            } catch (err) {
+                alert('❌ Erro de conexão ao enviar a música');
+            }
         }
     </script>
 </body>

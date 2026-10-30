@@ -16,20 +16,29 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const API_SECRET = process.env.API_SECRET || 'goticorj';
 
 // Middlewares
-// 👇 CONFIGURAÇÃO DO CORS ATUALIZADA AQUI 👇
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-User']
 }));
-// 👆 FIM DA ATUALIZAÇÃO DO CORS 👆
 
 app.use(express.json());
 
-// Configuração do multer para upload direto na pasta de imagens
+// ==========================================
+// CONFIGURAÇÃO DO MULTER ATUALIZADA
+// (Agora aceita imagens de projetos, foto de perfil e música)
+// ==========================================
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, 'src', 'imagensprojetos');
+    let uploadDir;
+    if (file.fieldname === 'musica') {
+      uploadDir = path.join(__dirname, 'public', 'musicas');
+    } else if (file.fieldname === 'perfil') {
+      uploadDir = path.join(__dirname, 'src', 'uploads');
+    } else {
+      uploadDir = path.join(__dirname, 'src', 'imagensprojetos');
+    }
+    
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -38,14 +47,18 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
-    cb(null, 'projeto-' + uniqueSuffix + ext);
+    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
   }
 });
 
 const upload = multer({ 
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB para caber as músicas
   fileFilter: (req, file, cb) => {
+    if (file.fieldname === 'musica') {
+      if (file.mimetype.startsWith('audio/')) return cb(null, true);
+      return cb(new Error('Apenas arquivos de áudio são permitidos.'));
+    }
     const allowedTypes = /jpeg|jpg|png|gif/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
@@ -76,6 +89,8 @@ function autenticarAdmin(req, res, next) {
 
 // Servir arquivos estáticos
 app.use('/src/imagensprojetos', express.static(path.join(__dirname, 'src', 'imagensprojetos')));
+app.use('/src/uploads', express.static(path.join(__dirname, 'src', 'uploads'))); // NOVO
+app.use('/musicas', express.static(path.join(__dirname, 'public', 'musicas'))); // NOVO
 app.use('/front', express.static(path.join(__dirname, 'front')));
 
 // Rotas para páginas HTML
@@ -112,7 +127,35 @@ app.post('/auth/login', (req, res) => {
   }
 });
 
-// ============ ROTAS DA API ============
+// ============ NOVAS ROTAS: CONFIGURAÇÕES ============
+app.get('/configuracoes', (req, res) => {
+  db.get('SELECT * FROM configuracoes WHERE id = 1', (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(row || { perfil_imagem: null, musica_arquivo: null });
+  });
+});
+
+app.post('/configuracoes/perfil', autenticarAdmin, upload.single('perfil'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Imagem é obrigatória' });
+  const imagemPath = `/src/uploads/${req.file.filename}`;
+  
+  db.run(`INSERT INTO configuracoes (id, perfil_imagem) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET perfil_imagem = excluded.perfil_imagem`, [imagemPath], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: 'Foto atualizada', url: imagemPath });
+  });
+});
+
+app.post('/configuracoes/musica', autenticarAdmin, upload.single('musica'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Música é obrigatória' });
+  const musicaPath = `/musicas/${req.file.filename}`;
+  
+  db.run(`INSERT INTO configuracoes (id, musica_arquivo) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET musica_arquivo = excluded.musica_arquivo`, [musicaPath], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: 'Música atualizada', url: musicaPath });
+  });
+});
+
+// ============ ROTAS DA API (PROJETOS) ============
 
 // 1. GET - Listar todos os projetos (PÚBLICO)
 app.get('/projetos', (req, res) => {

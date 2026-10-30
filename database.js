@@ -6,6 +6,7 @@ const db = new sqlite3.Database(path.join(__dirname, 'portfolio.db'));
 
 // Criar tabela de projetos
 db.serialize(() => {
+  // Tabela de Projetos
   db.run(`
     CREATE TABLE IF NOT EXISTS projetos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -16,9 +17,9 @@ db.serialize(() => {
       githubLink TEXT NOT NULL,
       liveLink TEXT NOT NULL
     )
-  `, async (err) => {
+  `, (err) => {
     if (err) {
-      console.error('Erro ao criar tabela:', err);
+      console.error('Erro ao criar tabela de projetos:', err);
       return;
     }
     console.log('✅ Tabela "projetos" verificada/criada com sucesso');
@@ -36,7 +37,6 @@ db.serialize(() => {
       { nome: 'Caminho da Confiança', descricao: 'Projeto focado em transmitir segurança...', imagem: '/src/imagensprojetos/caminhodaconfianca.png', categoria: 'Site / Web', githubLink: 'https://github.com/lordnecoreal/CaminhoDaConfianca', liveLink: 'https://caminhodaconfianca.vercel.app/' }
     ];
 
-    // Função que promisifica o db.get e db.run para podermos usar await
     const dbGet = (sql, params) => new Promise((resolve, reject) => {
       db.get(sql, params, (err, row) => err ? reject(err) : resolve(row));
     });
@@ -48,24 +48,37 @@ db.serialize(() => {
       });
     });
 
-    // Loop assíncrono para inserir um por um, de forma segura
-    for (const p of projetosIniciais) {
-      try {
-        const row = await dbGet('SELECT id FROM projetos WHERE nome = ?', [p.nome]);
-        
-        if (!row) {
-          await dbRun(
-            `INSERT INTO projetos (nome, descricao, imagem, categoria, githubLink, liveLink) VALUES (?, ?, ?, ?, ?, ?)`,
-            [p.nome, p.descricao, p.imagem, p.categoria, p.githubLink, p.liveLink]
-          );
-          console.log(`✅ Projeto adicionado: ${p.nome} (Categoria: ${p.categoria})`);
+    const popularBanco = async () => {
+      for (const p of projetosIniciais) {
+        try {
+          const row = await dbGet('SELECT id FROM projetos WHERE nome = ?', [p.nome]);
+          if (!row) {
+            await dbRun(
+              `INSERT INTO projetos (nome, descricao, imagem, categoria, githubLink, liveLink) VALUES (?, ?, ?, ?, ?, ?)`,
+              [p.nome, p.descricao, p.imagem, p.categoria, p.githubLink, p.liveLink]
+            );
+            console.log(`✅ Projeto adicionado: ${p.nome}`);
+          }
+        } catch (error) {
+          console.error(`❌ Erro ao processar ${p.nome}:`, error);
         }
-      } catch (error) {
-        console.error(`❌ Erro ao processar o projeto ${p.nome}:`, error);
       }
-    }
+      console.log('🌱 Verificação de banco de dados finalizada!');
+    };
     
-    console.log('🌱 Verificação de banco de dados finalizada com sucesso!');
+    popularBanco();
+  });
+
+  // NOVO: Tabela de Configurações (Foto e Música)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS configuracoes (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      perfil_imagem TEXT,
+      musica_arquivo TEXT
+    )
+  `, (err) => {
+    if (err) console.error('Erro ao criar tabela de configuracoes:', err);
+    else console.log('✅ Tabela "configuracoes" verificada/criada com sucesso');
   });
 });
 
