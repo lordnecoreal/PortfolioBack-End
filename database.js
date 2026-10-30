@@ -25,7 +25,7 @@ db.serialize(() => {
     }
     console.log('✅ Tabela "projetos" verificada/criada com sucesso');
     
-    // ADICIONADO: Atualiza a tabela existente sem apagar os dados
+    // Atualiza a tabela existente sem apagar os dados
     db.run(`ALTER TABLE projetos ADD COLUMN data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP`, (err) => {
       if (err && err.message.includes('duplicate column name')) {
         // Coluna já existe, ignora
@@ -33,6 +33,14 @@ db.serialize(() => {
     });
     
     const projetosIniciais = [
+      { 
+        nome: 'Mago da Floresta', 
+        descricao: 'Um jogo imersivo com elementos de RPG e fantasia. Explore a floresta, enfrente desafios e domine a magia da natureza.', 
+        imagem: '/src/imagensprojetos/magodafloresta.png', 
+        categoria: 'Jogo / RPG / Fantasia', 
+        githubLink: 'https://github.com/lordnecoreal/magoDaFloresta', 
+        liveLink: 'https://magodafloresta.vercel.app/' 
+      },
       { 
         nome: 'Encantos da Literatura', 
         descricao: 'Um espaço dedicado à poesia e à literatura gótica. Explore poemas que transitam entre a paixão, a melancolia e o místico.', 
