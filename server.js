@@ -16,7 +16,14 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const API_SECRET = process.env.API_SECRET || 'goticorj';
 
 // Middlewares
-app.use(cors());
+// 👇 CONFIGURAÇÃO DO CORS ATUALIZADA AQUI 👇
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-User']
+}));
+// 👆 FIM DA ATUALIZAÇÃO DO CORS 👆
+
 app.use(express.json());
 
 // Configuração do multer para upload direto na pasta de imagens
