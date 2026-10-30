@@ -236,6 +236,18 @@
             font-size: 13px;
         }
 
+        /* Badge para a categoria */
+        .badge-categoria {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
         @media (max-width: 768px) {
             .header-content {
                 flex-direction: column;
@@ -275,6 +287,13 @@
             <div class="form-group">
                 <label>Nome do Projeto *</label>
                 <input type="text" id="nome" required placeholder="Ex: Meu Projeto Incrível">
+            </div>
+            
+            <!-- NOVO CAMPO ADICIONADO AQUI -->
+            <div class="form-group">
+                <label>Categoria *</label>
+                <input type="text" id="categoria" required placeholder="Ex: Site / Web, Jogo / Quiz, Ferramenta...">
+                <div class="small-text">💡 Defina o tipo do projeto.</div>
             </div>
             
             <div class="form-group">
@@ -391,6 +410,8 @@
             
             const formData = new FormData();
             formData.append('nome', document.getElementById('nome').value);
+            // ENVIANDO A CATEGORIA AQUI
+            formData.append('categoria', document.getElementById('categoria').value);
             formData.append('descricao', document.getElementById('descricao').value);
             formData.append('githubLink', document.getElementById('githubLink').value);
             formData.append('liveLink', document.getElementById('liveLink').value);
@@ -458,6 +479,8 @@
                 
                 container.innerHTML = projects.map(project => `
                     <div class="project-card">
+                        <!-- MOSTRANDO A CATEGORIA AQUI -->
+                        <span class="badge-categoria">${escapeHtml(project.categoria || 'Geral')}</span>
                         <h3>${escapeHtml(project.nome)}</h3>
                         ${project.imagem ? `<img src="${project.imagem}" alt="${escapeHtml(project.nome)}" class="project-image-preview" onerror="this.style.display='none'">` : ''}
                         <p><strong>Descrição:</strong> ${escapeHtml(project.descricao)}</p>
@@ -488,6 +511,8 @@
                 
                 document.getElementById('projectId').value = project.id;
                 document.getElementById('nome').value = project.nome;
+                // PREENCHENDO A CATEGORIA NO FORMULÁRIO
+                document.getElementById('categoria').value = project.categoria || 'Geral';
                 document.getElementById('descricao').value = project.descricao;
                 document.getElementById('githubLink').value = project.githubLink;
                 document.getElementById('liveLink').value = project.liveLink;
@@ -559,6 +584,7 @@
         }
         
         function escapeHtml(text) {
+            if (!text) return '';
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
